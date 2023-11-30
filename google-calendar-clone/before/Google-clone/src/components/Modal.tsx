@@ -17,8 +17,6 @@ export function Modal({
   closeFn,
   setIsClosing,
 }: ModalProps) {
-  // const prevIsOpen = useRef<boolean>();
-
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if (e.key === "Escape") closeFn();
@@ -30,14 +28,6 @@ export function Modal({
       document.removeEventListener("keydown", handler);
     };
   }, [closeFn]);
-
-  // useLayoutEffect(() => {
-  //   if (!isOpen && prevIsOpen.current) {
-  //     setIsClosing(true);
-  //   }
-
-  //   prevIsOpen.current = isOpen;
-  // }, [isOpen]);
 
   if (!isOpen && !isClosing) return null;
 

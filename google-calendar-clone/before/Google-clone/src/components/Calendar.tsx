@@ -172,7 +172,7 @@ function CalendarDay({
       </div>
       <EventFormModal
         isOpen={isNewEventModalOpen}
-        submitFn={addEvent} //shorthand for onSubmit={newEvent => addEvent(newEvent)}
+        submitFn={addEvent}
         date={day}
         closeFn={() => setIsNewEventModalOpen(false)}
       />
@@ -244,8 +244,6 @@ function ViewMoreCalendarEventsModalInner({
 
 type EventFormModalProps = {
   submitFn: (event: UnionOmit<Event, "id">) => void;
-  // isClosing?: boolean;
-  // setIsClosing?: React.Dispatch<React.SetStateAction<boolean>>;
 } & (
   | { deleteFn: () => void; event: Event; date?: never }
   | { deleteFn?: never; event?: never; date: Date }
@@ -274,9 +272,7 @@ function EventFormModal({ isOpen, ...props }: EventFormModalProps) {
         {...props}
       />
     )
-  ); //
-
-  // return isOpen && <Modal isOpen={isOpen} {...ModalProps}></Modal>;
+  );
 }
 
 type EventFormModalInnerProps = {
@@ -300,7 +296,6 @@ function EventformModalInner({
 
   const [isAllDayChecked, setIsAllDayChecked] = useState(event?.allday || false);
   const [startTime, setStartTime] = useState(event?.startTime || "");
-  // const [endTime, setEndTime] = useState(event?.endTime || "");
   const endTimeRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -310,7 +305,6 @@ function EventformModalInner({
     const endTime = endTimeRef.current?.value;
 
     if (!name) return;
-    //if (name == null ||name =="")return //same thing?
 
     const commonProps = {
       name,
@@ -325,7 +319,6 @@ function EventformModalInner({
         allday: true,
       };
     } else {
-      // if (!startTime || !endTime) return; //not safe
       if (startTime == null || startTime == "" || endTime == null || endTime == "")
         return;
       newEvent = {
@@ -337,12 +330,6 @@ function EventformModalInner({
     }
     modalProps.closeFn();
     submitFn(newEvent);
-    //I added the following three lines to clear form on close (necessary; don't know why)
-    // if (isNew) setIsAllDayChecked(false);
-
-    // console.log("eventsArray==>", sortedEvents);
-    // if (endTimeRef.current) endTimeRef.current.value = "";
-    // // setStartTime("");
   }
 
   return (

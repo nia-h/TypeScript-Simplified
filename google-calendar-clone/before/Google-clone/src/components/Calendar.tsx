@@ -117,9 +117,9 @@ function CalendarDay({
       if (a.allday && b.allday) {
         return 0;
       } else if (a.allday) {
-        return -1; // (< 0) sort a before b (a's index is alwasy b's index + 1)
+        return -1;
       } else if (b.allday) {
-        return 1; //  (> 0) sort a after b (a's index is alwasy b's index + 1)
+        return 1;
       } else {
         return timeToNumber(a.startTime) - timeToNumber(b.startTime);
       }
@@ -128,7 +128,6 @@ function CalendarDay({
 
   return (
     <>
-      {/* <div className='day non-month-day old-month-day'> */}
       <div
         className={cc(
           "day",
@@ -154,8 +153,6 @@ function CalendarDay({
             className='events'
             items={sortedEvents}
             renderItem={i => <CalendarEvent event={i} />}
-            //My experiment below to reduce unnecessary prop drilling (is there a performance downside?   )
-            // getKey={a => a.id}
             renderOverflow={n => (
               <>
                 <button

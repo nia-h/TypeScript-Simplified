@@ -30,10 +30,7 @@ export function EventsProvider({ children }: EventProviderProps) {
 
   function addEvent(eventDetails: UnionOmit<Event, "id">) {
     setEvents(e => [...e, { ...eventDetails, id: crypto.randomUUID() }]);
-    // setEvents(e=>[...e, { ...event, id: crypto.randomUUID() }]); //both works??
   }
-
-  //submitFn={newEvent => editEvent(event.id, newEvent)}
 
   function editEvent(id: string, eventDetails: UnionOmit<Event, "id">) {
     setEvents(events => {

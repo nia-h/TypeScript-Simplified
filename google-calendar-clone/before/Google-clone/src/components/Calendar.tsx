@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useLayoutEffect,
 } from "react";
 import {
   startOfWeek,
@@ -28,7 +29,7 @@ import { cc } from "../utils/cc";
 import { useEvents } from "../context/useEvents";
 import { Modal, ModalProps } from "./Modal";
 import { UnionOmit } from "../utils/types";
-import type { Event } from "../context/Events";
+import { EventsProvider, type Event } from "../context/Events";
 import { EVENT_COLORS } from "../context/useEvents";
 import { OverflowContainer } from "./OverflowCotainer";
 
@@ -184,14 +185,49 @@ function CalendarDay({
 
 type ViewMoreCalendarEventsModalProps = {
   events: Event[];
-} & Omit<ModalProps, "children">;
+} & Omit<ModalProps, "children" | "isClosing" | "setIsClosing">;
 
 function ViewMoreCalendarEventsModal({
   events,
-  ...modalProps
+  isOpen,
+  ...props
 }: ViewMoreCalendarEventsModalProps) {
   if (events.length === 0) return null;
 
+  const [isClosing, setIsClosing] = useState(false);
+
+  const prevIsOpen = useRef<boolean>();
+
+  useLayoutEffect(() => {
+    if (!isOpen && prevIsOpen.current) {
+      setIsClosing(true);
+    }
+
+    prevIsOpen.current = isOpen;
+  }, [isOpen]);
+
+  return (
+    (isOpen || isClosing) && (
+      <ViewMoreCalendarEventsModalInner
+        isOpen={isOpen}
+        isClosing={isClosing}
+        setIsClosing={setIsClosing}
+        events={events}
+        {...props}
+      />
+    )
+  );
+}
+
+type ViewMoreCalendarEventsModalInnerProps = {
+  isClosing: boolean;
+  setIsClosing: React.Dispatch<React.SetStateAction<boolean>>;
+} & ViewMoreCalendarEventsModalProps;
+
+function ViewMoreCalendarEventsModalInner({
+  events,
+  ...modalProps
+}: ViewMoreCalendarEventsModalInnerProps) {
   return (
     <Modal {...modalProps}>
       <div className='modal-title'>
@@ -210,23 +246,55 @@ function ViewMoreCalendarEventsModal({
 }
 
 type EventFormModalProps = {
-  isOpen: boolean;
   submitFn: (event: UnionOmit<Event, "id">) => void;
+  // isClosing?: boolean;
+  // setIsClosing?: React.Dispatch<React.SetStateAction<boolean>>;
 } & (
   | { deleteFn: () => void; event: Event; date?: never }
   | { deleteFn?: never; event?: never; date: Date }
 ) &
-  Omit<ModalProps, "children">;
+  Omit<ModalProps, "children" | "isClosing" | "setIsClosing">;
 
-function EventFormModal({
-  isOpen,
+function EventFormModal({ isOpen, ...props }: EventFormModalProps) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  const prevIsOpen = useRef<boolean>();
+
+  useLayoutEffect(() => {
+    if (!isOpen && prevIsOpen.current) {
+      setIsClosing(true);
+    }
+
+    prevIsOpen.current = isOpen;
+  }, [isOpen]);
+
+  return (
+    (isOpen || isClosing) && (
+      <EventformModalInner
+        isOpen={isOpen}
+        isClosing={isClosing}
+        setIsClosing={setIsClosing}
+        {...props}
+      />
+    )
+  ); //
+
+  // return isOpen && <Modal isOpen={isOpen} {...ModalProps}></Modal>;
+}
+
+type EventFormModalInnerProps = {
+  isClosing: boolean;
+  setIsClosing: React.Dispatch<React.SetStateAction<boolean>>;
+} & EventFormModalProps;
+
+function EventformModalInner({
   submitFn,
-  deleteFn,
   event,
+  deleteFn,
   date,
-  ...ModalProps
-}: EventFormModalProps) {
-  const isNew = !event;
+  ...modalProps
+}: EventFormModalInnerProps) {
+  const isNew = event;
   const formId = useId();
 
   const [selectedColor, setSelectedColor] = useState(
@@ -270,7 +338,7 @@ function EventFormModal({
         allday: false,
       };
     }
-    ModalProps.closeFn();
+    modalProps.closeFn();
     submitFn(newEvent);
     //I added the following three lines to clear form on close (necessary; don't know why)
     // if (isNew) setIsAllDayChecked(false);
@@ -280,17 +348,98 @@ function EventFormModal({
     // // setStartTime("");
   }
 
-  // useEffect(() => {
-  //   console.log("useEffect--->isAllDayChecked==>", isAllDayChecked); //
-  //   if (isAllDayChecked) {
-  //     setStartTime("");
-  //   }
-  // }, [isAllDayChecked]);  //no need to clear out startTime and endTime if Allday
   return (
-    isOpen && <Modal event={event} isNew={isNew} isOpen={isOpen} {...ModalProps} />
+    <Modal {...modalProps}>
+      <div className='modal-title'>
+        <div>{isNew ? "Add" : "Edit"} Event</div>
+        <small>
+          {formatDate(date || event.date, {
+            dateStyle: "short",
+          })}
+        </small>
+        <button className='close-btn' onClick={modalProps.closeFn}>
+          &times;
+        </button>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <div className='form-group'>
+          <label htmlFor={`${formId}-name`}>Name</label>
+          <input
+            required
+            defaultValue={event?.name}
+            ref={nameRef}
+            type='text'
+            id={`${formId}-name`}
+          />
+        </div>
+        <div className='form-group checkbox'>
+          <input
+            checked={isAllDayChecked}
+            onChange={e => setIsAllDayChecked(e.target.checked)}
+            type='checkbox'
+            id={`${formId}-all-day`}
+          />
+          <label htmlFor={`${formId}-all-day`}>All Day?</label>
+        </div>
+        <div className='row'>
+          <div className='form-group'>
+            <label htmlFor={`${formId}-start-time`}>Start Time</label>
+            <input
+              value={startTime}
+              onChange={e => setStartTime(e.target.value)}
+              required={!isAllDayChecked}
+              disabled={isAllDayChecked}
+              type='time'
+              id={`${formId}-start-time`}
+            />
+          </div>
+          <div className='form-group'>
+            <label htmlFor={`${formId}-end-time`}>End Time</label>
+            <input
+              ref={endTimeRef}
+              defaultValue={event?.endTime}
+              min={startTime}
+              required={!isAllDayChecked}
+              disabled={isAllDayChecked}
+              type='time'
+              id={`${formId}-end-time`}
+            />
+          </div>
+        </div>
+        <div className='form-group'>
+          <label>Color</label>
+          <div className='row left'>
+            {EVENT_COLORS.map(color => (
+              <Fragment key={color}>
+                <input
+                  type='radio'
+                  name='color'
+                  value={color}
+                  id={`${formId}-${color}`}
+                  checked={selectedColor === color}
+                  onChange={() => setSelectedColor(color)}
+                  className='color-radio'
+                />
+                <label htmlFor={`${formId}-${color}`}>
+                  <span className='sr-only'>{color}</span>
+                </label>
+              </Fragment>
+            ))}
+          </div>
+        </div>
+        <div className='row'>
+          <button className='btn btn-success' type='submit'>
+            {isNew ? "Add" : "Edit"}
+          </button>
+          {deleteFn != null && (
+            <button onClick={deleteFn} className='btn btn-delete' type='button'>
+              Delete
+            </button>
+          )}
+        </div>
+      </form>
+    </Modal>
   );
-
-  // return isOpen && <Modal isOpen={isOpen} {...ModalProps}></Modal>;
 }
 
 function CalendarEvent({ event }: { event: Event }) {
@@ -322,8 +471,8 @@ function CalendarEvent({ event }: { event: Event }) {
         isOpen={isEditEventModalOpen}
         submitFn={newEvent => editEvent(event.id, newEvent)}
         event={event}
-        closeFn={() => setIsEditEventModalOpen(false)}
         deleteFn={() => deleteEvent(event.id)}
+        closeFn={() => setIsEditEventModalOpen(false)}
       />
     </>
   );
